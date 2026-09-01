@@ -4,9 +4,9 @@ Protects specific buttons being from misclicked.
 
 Supported buttons:
 
-- Auto Retaliate Toggle
-- XP Drops Button (Show/Hide/Setup)
-- Always Set (Bank) Placeholders Toggle
+- Auto Retaliate
+- XP Drops (Show/Hide/Setup)
+- Always Set (Bank) Placeholders
 
 Each supported button can use one of three modes:
 
