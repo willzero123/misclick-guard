@@ -16,4 +16,4 @@ Each supported button can use one of three modes:
 
 **Left click off** can optionally **deprioritize the menu entry**, letting an underlying action such as Walk here become the default left click. When this is enabled, hover tooltips are hidden.
 
-**Disabled** always deprioritizes the menu entry and suppresses the hover tooltip.
+**Disabled** removes the menu entry and suppresses the hover tooltip.
