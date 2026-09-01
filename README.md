@@ -1,6 +1,6 @@
 # Misclick Guard
 
-Protects certain buttons being from misclicked.
+Protects specific buttons being from misclicked.
 
 Each supported button can use one of three modes:
 
