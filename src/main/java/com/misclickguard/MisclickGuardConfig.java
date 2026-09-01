@@ -59,6 +59,13 @@ public interface MisclickGuardConfig extends Config
 	)
 	String ALWAYS_SET_PLACEHOLDERS_SECTION = "alwaysSetPlaceholdersSection";
 
+	@ConfigSection(
+		name = "<html><table cellspacing=0 cellpadding=0><tr><td>Left Click Off</td></tr></table></html>",
+		description = "",
+		position = 3
+	)
+	String LEFT_CLICK_OFF_SECTION = "leftClickOffSection";
+
 	@ConfigItem(
 		keyName = "autoRetaliate",
 		name = "Toggle",
@@ -93,5 +100,17 @@ public interface MisclickGuardConfig extends Config
 	default ClickMode alwaysSetPlaceholders()
 	{
 		return ClickMode.NORMAL;
+	}
+
+	@ConfigItem(
+		keyName = "deprioritizeLeftClickOffEntries",
+		name = "Deprioritize menu entry",
+		description = "",
+		section = LEFT_CLICK_OFF_SECTION,
+		position = 0
+	)
+	default boolean deprioritizeLeftClickOffEntries()
+	{
+		return true;
 	}
 }

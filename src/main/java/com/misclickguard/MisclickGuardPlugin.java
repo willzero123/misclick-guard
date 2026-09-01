@@ -34,11 +34,16 @@ import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
 import net.runelite.api.Menu;
+import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.PostMenuSort;
-import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.MouseAdapter;
 import net.runelite.client.input.MouseManager;
@@ -62,6 +67,8 @@ public class MisclickGuardPlugin extends Plugin
 	private MouseManager mouseManager;
 
 	private boolean leftPressStartedInMenu;
+	private boolean autoRetaliateTooltipHiddenByPlugin;
+	private boolean autoRetaliateTooltipWasHidden;
 
 	private final MouseAdapter mouseListener = new MouseAdapter()
 	{
@@ -92,14 +99,50 @@ public class MisclickGuardPlugin extends Plugin
 	protected void shutDown()
 	{
 		mouseManager.unregisterMouseListener(mouseListener);
+		restoreAutoRetaliateTooltip();
 		leftPressStartedInMenu = false;
+	}
+
+	@Subscribe
+	public void onMenuEntryAdded(MenuEntryAdded event)
+	{
+		MenuEntry entry = event.getMenuEntry();
+		GuardedAction action = GuardedAction.find(entry);
+		if (action == null)
+		{
+			return;
+		}
+
+		ClickMode clickMode = action.clickMode(config);
+		if (config.deprioritizeLeftClickOffEntries()
+			&& clickMode.blocksLeftClick() && !clickMode.removesMenuEntry())
+		{
+			entry.setDeprioritized(true);
+		}
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if (MisclickGuardConfig.GROUP.equals(event.getGroup()))
+		{
+			restoreAutoRetaliateTooltip();
+		}
+	}
+
+	@Subscribe
+	public void onMenuOpened(MenuOpened event)
+	{
+		restoreCancelForOpenMenu();
 	}
 
 	@Subscribe(priority = -1)
 	public void onPostMenuSort(PostMenuSort event)
 	{
+		MenuEntry[] entries = client.getMenu().getMenuEntries();
+		updateAutoRetaliateTooltip(shouldHideAutoRetaliateTooltip(entries));
 		removeDisabledEntries();
-		hideNoLeftClickTooltip();
+		makeCancelDefaultForDeprioritizedEntry();
 	}
 
 	@Subscribe
@@ -122,24 +165,132 @@ public class MisclickGuardPlugin extends Plugin
 		}
 	}
 
-	private void hideNoLeftClickTooltip()
+	private boolean shouldHideAutoRetaliateTooltip(MenuEntry[] entries)
 	{
-		MenuEntry[] entries = client.getMenu().getMenuEntries();
+		for (MenuEntry entry : entries)
+		{
+			if (GuardedAction.find(entry) != GuardedAction.AUTO_RETALIATE)
+			{
+				continue;
+			}
+
+			ClickMode clickMode = GuardedAction.AUTO_RETALIATE.clickMode(config);
+			return clickMode.removesMenuEntry()
+				|| config.deprioritizeLeftClickOffEntries() && clickMode.blocksLeftClick();
+		}
+		return false;
+	}
+
+	private void updateAutoRetaliateTooltip(boolean hide)
+	{
+		if (hide)
+		{
+			hideAutoRetaliateTooltip();
+		}
+		else
+		{
+			restoreAutoRetaliateTooltip();
+		}
+	}
+
+	private void hideAutoRetaliateTooltip()
+	{
+		Widget tooltip = client.getWidget(InterfaceID.CombatInterface.TOOLTIP);
+		if (tooltip == null)
+		{
+			return;
+		}
+
+		if (!autoRetaliateTooltipHiddenByPlugin)
+		{
+			autoRetaliateTooltipWasHidden = tooltip.isHidden();
+			autoRetaliateTooltipHiddenByPlugin = true;
+		}
+		tooltip.setHidden(true);
+	}
+
+	private void restoreAutoRetaliateTooltip()
+	{
+		if (!autoRetaliateTooltipHiddenByPlugin)
+		{
+			return;
+		}
+
+		Widget tooltip = client.getWidget(InterfaceID.CombatInterface.TOOLTIP);
+		if (tooltip != null)
+		{
+			tooltip.setHidden(autoRetaliateTooltipWasHidden);
+		}
+		autoRetaliateTooltipHiddenByPlugin = false;
+	}
+
+	private void makeCancelDefaultForDeprioritizedEntry()
+	{
+		if (!config.deprioritizeLeftClickOffEntries())
+		{
+			return;
+		}
+
+		Menu menu = client.getMenu();
+		MenuEntry[] entries = menu.getMenuEntries();
 		if (entries.length == 0)
 		{
 			return;
 		}
 
-		GuardedAction action = GuardedAction.find(entries[entries.length - 1]);
+		MenuEntry topEntry = entries[entries.length - 1];
+		GuardedAction action = GuardedAction.find(topEntry);
 		if (action == null)
 		{
 			return;
 		}
 
 		ClickMode clickMode = action.clickMode(config);
-		if (clickMode.blocksLeftClick() && !clickMode.removesMenuEntry())
+		if (!topEntry.isDeprioritized()
+			|| !clickMode.blocksLeftClick() || clickMode.removesMenuEntry())
 		{
-			client.setVarcIntValue(VarClientID.TOOLTIP_BUILT, 1);
+			return;
+		}
+
+		for (int i = 0; i < entries.length; i++)
+		{
+			if (entries[i].getType() == MenuAction.CANCEL)
+			{
+				MenuEntry cancelEntry = entries[i];
+				cancelEntry.setOption("");
+				System.arraycopy(entries, i + 1, entries, i, entries.length - i - 1);
+				entries[entries.length - 1] = cancelEntry;
+				menu.setMenuEntries(entries);
+				return;
+			}
+		}
+
+		menu.createMenuEntry(-1)
+			.setOption("")
+			.setTarget("")
+			.setType(MenuAction.CANCEL);
+	}
+
+	private void restoreCancelForOpenMenu()
+	{
+		Menu menu = client.getMenu();
+		MenuEntry[] entries = menu.getMenuEntries();
+		for (int i = 0; i < entries.length; i++)
+		{
+			MenuEntry entry = entries[i];
+			if (entry.getType() != MenuAction.CANCEL || !"".equals(entry.getOption()))
+			{
+				continue;
+			}
+
+			entry.setOption("Cancel");
+			if (i > 0)
+			{
+				System.arraycopy(entries, 0, entries, 1, i);
+				entries[0] = entry;
+				menu.setMenuEntries(entries);
+			}
+			return;
 		}
 	}
 
