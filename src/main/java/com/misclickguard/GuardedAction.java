@@ -33,31 +33,39 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetUtil;
 
 enum GuardedAction
 {
 	AUTO_RETALIATE(
 		MisclickGuardConfig::autoRetaliate,
+		WidgetGroup.COMBAT,
 		MenuPattern.option("auto retaliate"),
 		MenuPattern.target("auto retaliate")
 	),
 	HIDE_XP_DROPS(
 		MisclickGuardConfig::xpDrops,
+		WidgetGroup.XP_DROPS,
 		MenuPattern.option("hide xp drops"),
 		MenuPattern.optionAndTarget("hide", "xp drops")
 	),
 	SHOW_XP_DROPS(
 		MisclickGuardConfig::xpDrops,
+		WidgetGroup.XP_DROPS,
 		MenuPattern.option("show xp drops"),
 		MenuPattern.optionAndTarget("show", "xp drops")
 	),
 	SETUP_XP_DROPS(
 		MisclickGuardConfig::xpDrops,
+		WidgetGroup.XP_DROPS,
 		MenuPattern.option("setup xp drops"),
 		MenuPattern.optionAndTarget("setup", "xp drops")
 	),
 	ALWAYS_SET_PLACEHOLDERS(
 		MisclickGuardConfig::alwaysSetPlaceholders,
+		WidgetGroup.BANK,
 		MenuPattern.option("always set placeholders"),
 		MenuPattern.target("always set placeholders")
 	);
@@ -77,13 +85,16 @@ enum GuardedAction
 	);
 
 	private final Function<MisclickGuardConfig, ClickMode> clickMode;
+	private final WidgetGroup widgetGroup;
 	private final MenuPattern[] menuPatterns;
 
 	GuardedAction(
 		Function<MisclickGuardConfig, ClickMode> clickMode,
+		WidgetGroup widgetGroup,
 		MenuPattern... menuPatterns)
 	{
 		this.clickMode = clickMode;
+		this.widgetGroup = widgetGroup;
 		this.menuPatterns = menuPatterns;
 	}
 
@@ -112,6 +123,11 @@ enum GuardedAction
 
 	private boolean matches(MenuEntry entry)
 	{
+		if (!widgetGroup.matches(entry.getWidget()))
+		{
+			return false;
+		}
+
 		for (MenuPattern pattern : menuPatterns)
 		{
 			if (pattern.matches(entry))
@@ -154,6 +170,43 @@ enum GuardedAction
 			}
 		}
 		return !inTag && expectedIndex == expected.length();
+	}
+
+	private enum WidgetGroup
+	{
+		COMBAT(InterfaceID.COMBAT_INTERFACE),
+		XP_DROPS(
+			InterfaceID.ORBS,
+			InterfaceID.ORBS_NOMAP,
+			InterfaceID.ORBS_OSM,
+			InterfaceID.ORBS_OSM_NOMAP
+		),
+		BANK(InterfaceID.BANKMAIN);
+
+		private final int[] interfaceIds;
+
+		WidgetGroup(int... interfaceIds)
+		{
+			this.interfaceIds = interfaceIds;
+		}
+
+		private boolean matches(@Nullable Widget widget)
+		{
+			if (widget == null)
+			{
+				return false;
+			}
+
+			int interfaceId = WidgetUtil.componentToInterface(widget.getId());
+			for (int expectedInterfaceId : interfaceIds)
+			{
+				if (interfaceId == expectedInterfaceId)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 
 	private static final class MenuPattern

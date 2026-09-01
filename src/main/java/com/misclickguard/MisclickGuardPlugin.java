@@ -30,6 +30,7 @@ package com.misclickguard;
 
 import com.google.inject.Provides;
 import java.awt.event.MouseEvent;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
@@ -66,7 +67,7 @@ public class MisclickGuardPlugin extends Plugin
 	@Inject
 	private MouseManager mouseManager;
 
-	private boolean leftPressStartedInMenu;
+	private final AtomicBoolean leftPressStartedInMenu = new AtomicBoolean();
 	private boolean autoRetaliateTooltipHiddenByPlugin;
 	private boolean autoRetaliateTooltipWasHidden;
 
@@ -77,7 +78,7 @@ public class MisclickGuardPlugin extends Plugin
 		{
 			if (SwingUtilities.isLeftMouseButton(event))
 			{
-				leftPressStartedInMenu = client.isMenuOpen();
+				leftPressStartedInMenu.set(client.isMenuOpen());
 			}
 			return event;
 		}
@@ -100,7 +101,7 @@ public class MisclickGuardPlugin extends Plugin
 	{
 		mouseManager.unregisterMouseListener(mouseListener);
 		restoreAutoRetaliateTooltip();
-		leftPressStartedInMenu = false;
+		leftPressStartedInMenu.set(false);
 	}
 
 	@Subscribe
@@ -148,8 +149,7 @@ public class MisclickGuardPlugin extends Plugin
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
-		boolean selectedFromOpenMenu = leftPressStartedInMenu;
-		leftPressStartedInMenu = false;
+		boolean selectedFromOpenMenu = leftPressStartedInMenu.getAndSet(false);
 
 		GuardedAction action = GuardedAction.find(event.getMenuEntry());
 		if (action == null)
