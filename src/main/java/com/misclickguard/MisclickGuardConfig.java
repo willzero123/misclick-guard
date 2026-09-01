@@ -69,7 +69,7 @@ public interface MisclickGuardConfig extends Config
 	@ConfigItem(
 		keyName = "autoRetaliate",
 		name = "Toggle",
-		description = "",
+		description = "Enable/Disable",
 		section = AUTO_RETALIATE_SECTION,
 		position = 0
 	)
@@ -93,7 +93,7 @@ public interface MisclickGuardConfig extends Config
 	@ConfigItem(
 		keyName = "alwaysSetPlaceholders",
 		name = "Toggle",
-		description = "",
+		description = "Enable/Disable",
 		section = ALWAYS_SET_PLACEHOLDERS_SECTION,
 		position = 0
 	)
