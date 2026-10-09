@@ -7,6 +7,7 @@ Supported buttons:
 - Auto Retaliate
 - XP Drops (Show/Hide/Setup)
 - Always Set (Bank) Placeholders
+- Report (Abuse/Game Bug)
 
 Each supported button can use one of three modes:
 

@@ -60,9 +60,16 @@ public interface MisclickGuardConfig extends Config
 	String ALWAYS_SET_PLACEHOLDERS_SECTION = "alwaysSetPlaceholdersSection";
 
 	@ConfigSection(
-		name = "<html><table cellspacing=0 cellpadding=0><tr><td>Left Click Off</td></tr></table></html>",
+		name = "<html><table cellspacing=0 cellpadding=0><tr><td>Report Button</td></tr></table></html>",
 		description = "",
 		position = 3
+	)
+	String REPORT_SECTION = "reportSection";
+
+	@ConfigSection(
+		name = "<html><table cellspacing=0 cellpadding=0><tr><td>Left Click Off</td></tr></table></html>",
+		description = "",
+		position = 4
 	)
 	String LEFT_CLICK_OFF_SECTION = "leftClickOffSection";
 
@@ -98,6 +105,18 @@ public interface MisclickGuardConfig extends Config
 		position = 0
 	)
 	default ClickMode alwaysSetPlaceholders()
+	{
+		return ClickMode.NORMAL;
+	}
+
+	@ConfigItem(
+		keyName = "report",
+		name = "Abuse/Game Bug",
+		description = "",
+		section = REPORT_SECTION,
+		position = 0
+	)
+	default ClickMode report()
 	{
 		return ClickMode.NORMAL;
 	}

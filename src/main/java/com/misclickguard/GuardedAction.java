@@ -68,6 +68,18 @@ enum GuardedAction
 		WidgetGroup.BANK,
 		MenuPattern.option("always set placeholders"),
 		MenuPattern.target("always set placeholders")
+	),
+	REPORT_ABUSE(
+		MisclickGuardConfig::report,
+		WidgetGroup.REPORT,
+		MenuPattern.option("report abuse"),
+		MenuPattern.optionAndTarget("report", "abuse")
+	),
+	REPORT_GAME_BUG(
+		MisclickGuardConfig::report,
+		WidgetGroup.REPORT,
+		MenuPattern.option("report game bug"),
+		MenuPattern.optionAndTarget("report", "game bug")
 	);
 
 	private static final GuardedAction[] ACTIONS = values();
@@ -181,7 +193,8 @@ enum GuardedAction
 			InterfaceID.ORBS_OSM,
 			InterfaceID.ORBS_OSM_NOMAP
 		),
-		BANK(InterfaceID.BANKMAIN);
+		BANK(InterfaceID.BANKMAIN),
+		REPORT(InterfaceID.CHATBOX);
 
 		private final int[] interfaceIds;
 
